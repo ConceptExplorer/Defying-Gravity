@@ -1,7 +1,7 @@
 # Defying Gravity 🚀
 
 <p align="center">
-  <img src="preview.png" width="800" alt="Defying Gravity Gameplay">
+  <img src="preview-v2.png" width="800" alt="Defying Gravity Gameplay">
 </p>
 
 An interactive browser-based physics simulation and progressive learning game designed to teach students concepts like **Thrust-to-Weight Ratio (TWR)**, payload mass scaling, and rocket propulsion.

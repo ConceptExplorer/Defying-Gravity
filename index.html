@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defying Gravity - Progressive Learning Layout</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121824;
+            color: #e2e8f0;
+            margin: 0;
+            padding: 10px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        h1 { margin: 2px 0; color: #38bdf8; text-shadow: 0 0 10px rgba(56, 189, 248, 0.3); font-size: 1.6rem; }
+        .nutshell-box {
+            background: #1e293b;
+            border-left: 5px solid #38bdf8;
+            padding: 8px 12px;
+            border-radius: 4px;
+            width: 100%;
+            max-width: 1350px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            line-height: 1.3;
+            box-sizing: border-box;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            max-width: 1350px;
+            width: 100%;
+            align-items: start;
+        }
+        @media (max-width: 1100px) {
+            .dashboard-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 768px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+        .panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            box-sizing: border-box;
+            height: 100%;
+        }
+        .panel h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            color: #38bdf8;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 6px;
+        }
+        .simulation-space {
+            position: relative;
+            height: 350px;
+            background: linear-gradient(to top, #0f172a, #1e1b4b);
+            border-radius: 6px;
+            overflow: hidden;
+            border: 2px solid #334155;
+        }
+        #ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 25px;
+            background: #334155;
+        }
+        #rocket {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 60px;
+            background: #64748b;
+            border-radius: 6px 6px 0 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: 5px;
+            box-sizing: border-box;
+            font-weight: bold;
+            font-size: 0.7rem;
+            color: #fff;
+        }
+        .thruster-fire {
+            width: 14px;
+            height: 0px;
+            background: linear-gradient(to bottom, #f97316, transparent);
+            position: absolute;
+            bottom: -14px;
+            left: 13px;
+            border-radius: 0 0 6px 6px;
+            transition: height 0.1s ease-out;
+        }
+        .slider-group {
+            background: #0f172a;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+        }
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+        }
+        .slider-header strong { color: #e2e8f0; }
+        .control-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .control-input-wrapper input[type=number] {
+            width: 60px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #38bdf8;
+            font-family: monospace;
+            font-size: 0.8rem;
+            padding: 2px 4px;
+            border-radius: 4px;
+            text-align: right;
+        }
+        input[type=range] {
+            width: 100%;
+            accent-color: #38bdf8;
+            cursor: pointer;
+            height: 5px;
+        }
+        .stats-display {
+            margin-top: 8px;
+            background: #0f172a;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        .stat-line { display: flex; justify-content: space-between; margin: 2px 0; }
+        #telemetry {
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            font-family: monospace;
+            font-size: 0.75rem;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 5px 8px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            z-index: 10;
+        }
+        #status-badge { font-weight: bold; }
+
+        #error-banner {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+            display: none;
+        }
+
+        /* Countdown Overlay */
+        #countdown-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            animation: fadeIn 0.3s ease;
+        }
+        #countdown-overlay h2 { color: #10b981; margin: 0 0 10px 0; font-size: 1.2rem; }
+        #countdown-num { font-size: 3rem; font-weight: bold; color: #38bdf8; font-family: monospace; }
+
+        /* Winner Celebration Overlay */
+        #winner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            animation: fadeIn 0.4s ease;
+        }
+        #winner-overlay h2 { color: #38bdf8; margin: 0 0 10px 0; font-size: 1.5rem; text-shadow: 0 0 15px rgba(56, 189, 248, 0.5); }
+        #winner-overlay p { color: #cbd5e1; font-size: 0.9rem; margin-bottom: 20px; max-width: 320px; line-height: 1.4; }
+        .winner-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+            transition: background 0.2s;
+        }
+        .winner-btn:hover { background: #059669; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .challenge-item {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .challenge-item.completed {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .challenge-text-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            gap: 10px;
+        }
+        .challenge-status {
+            font-weight: bold;
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .challenge-status.pending { color: #94a3b8; background: #1e293b; }
+        .challenge-status.done { color: #10b981; background: #064e3b; }
+    </style>
+</head>
+<body>
+
+    <h1>Defying Gravity</h1>
+    
+    <div class="nutshell-box">
+        <strong>Mission Control:</strong> Complete challenges progressively! Savor your achievement for a moment before the 3-2-1 countdown reset.
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- COLUMN 1: CONTROLS & STATS -->
+        <div class="panel">
+            <h3>Ship Assembly & Tuning</h3>
+            <div id="error-banner">⚠️ Weight / Cargo cannot be 0!</div>
+            
+            <div class="slider-group">
+                <div class="slider-header">
+                    <strong>Ion Thruster Power</strong>
+                    <div class="control-input-wrapper">
+                        <input type="number" id="num-ion" min="0" max="100" step="0.01" value="0.00" oninput="syncControl('ion', 'slider')">
+                        <span style="font-family: monospace; color: #38bdf8; font-size: 0.8rem;">kN</span>
+                    </div>
+                </div>
+                <input type="range" id="slider-ion" min="0" max="100" step="1" value="0" oninput="syncControl('ion', 'num')">
+                <small style="color: #94a3b8; font-size: 0.7rem;">Lightweight continuous (+10 kg per 20 kN)</small>
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-header">
+                    <strong>Chemical Booster Throttle</strong>
+                    <div class="control-input-wrapper">
+                        <input type="number" id="num-chem" min="0" max="100" step="0.01" value="0.00" oninput="syncControl('chem', 'slider')">
+                        <span style="font-family: monospace; color: #38bdf8; font-size: 0.8rem;">%</span>
+                    </div>
+                </div>
+                <input type="range" id="slider-chem" min="0" max="100" step="1" value="0" oninput="syncControl('chem', 'num')">
+                <small style="color: #94a3b8; font-size: 0.7rem;">Heavy raw power (Max: 100 kN | 40 kg at 100%)</small>
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-header">
+                    <strong>Battery / Cargo Units</strong>
+                    <div class="control-input-wrapper">
+                        <input type="number" id="num-cargo" min="1" max="5" step="0.01" value="1.00" oninput="syncControl('cargo', 'slider')">
+                        <span style="font-family: monospace; color: #38bdf8; font-size: 0.8rem;">units</span>
+                    </div>
+                </div>
+                <input type="range" id="slider-cargo" min="1" max="5" step="1" value="1" oninput="syncControl('cargo', 'num')">
+                <small style="color: #94a3b8; font-size: 0.7rem;">Adds payload (+15 kg per unit)</small>
+            </div>
+
+            <div class="stats-display">
+                <div class="stat-line"><span>Chassis Weight:</span> <span>25 kg</span></div>
+                <div class="stat-line"><span>Total Weight:</span> <span id="stat-weight">0 kg</span></div>
+                <div class="stat-line"><span>Total Thrust:</span> <span id="stat-thrust">0 kN</span></div>
+                <div class="stat-line" style="border-top: 1px solid #334155; padding-top: 4px; font-weight: bold;">
+                    <span>Thrust-to-Weight:</span> <span id="stat-twr">0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 2: SIMULATION FEED -->
+        <div class="panel">
+            <h3>Simulation Feed</h3>
+            <div class="simulation-space">
+                <div id="countdown-overlay">
+                    <h2>Challenge Completed! 🎉</h2>
+                    <div id="countdown-num">3</div>
+                    <small style="color: #94a3b8; margin-top: 8px;">Resetting launchpad & controls...</small>
+                </div>
+                <div id="winner-overlay">
+                    <h2>🏆 WINNER! 🏆</h2>
+                    <p>Incredible piloting! You successfully cleared all flight challenges and reached escape velocity.</p>
+                    <button class="winner-btn" onclick="restartFullGame()">Play Again / Restart</button>
+                </div>
+                <div id="telemetry">
+                    <div>Alt: <span id="tele-alt">0</span>m | Speed: <span id="tele-spd">0</span>m/s</div>
+                    <div>State: <span id="status-badge" style="color: #ef4444;">Grounded</span></div>
+                </div>
+                <div id="rocket">
+                    <span id="rocket-label">Craft</span>
+                    <div class="thruster-fire" id="fire-effect"></div>
+                </div>
+                <div id="ground"></div>
+            </div>
+        </div>
+
+        <!-- COLUMN 3: FLIGHT CHALLENGES -->
+        <div class="panel">
+            <h3>Flight Challenges</h3>
+            <div class="challenge-item" id="ch-1">
+                <div class="challenge-text-wrapper">
+                    <div><strong>1. Pure Engine Ascent</strong><br><small style="color: #94a3b8;">Clear Alt ≥ 120m using <u>only one</u> engine type.</small></div>
+                </div>
+                <span class="challenge-status pending" id="stat-ch-1">Pending</span>
+            </div>
+            <div class="challenge-item" id="ch-2">
+                <div class="challenge-text-wrapper">
+                    <div><strong>2. Pure Ion Hover</strong><br><small style="color: #94a3b8;">Stable hover (Alt > 5m, TWR ≈ 1.0, Ion > 0, Chem = 0).</small></div>
+                </div>
+                <span class="challenge-status pending" id="stat-ch-2">Pending</span>
+            </div>
+            <div class="challenge-item" id="ch-3">
+                <div class="challenge-text-wrapper">
+                    <div><strong>3. Heavy Cargo Orbit</strong><br><small style="color: #94a3b8;">Orbit (Alt ≥ 200m, Cargo ≥ 3).</small></div>
+                    <div style="color: #38bdf8; font-size: 0.75rem; white-space: nowrap;">(Tip: Use Combined thrust)</div>
+                </div>
+                <span class="challenge-status pending" id="stat-ch-3">Pending</span>
+            </div>
+            <div class="challenge-item" id="ch-4">
+                <div class="challenge-text-wrapper">
+                    <div><strong>4. Escape Velocity</strong><br><small style="color: #94a3b8;">Alt ≥ 200m with Combined Thrust ≥ 180 kN.</small></div>
+                    <div style="color: #38bdf8; font-size: 0.75rem; white-space: nowrap;">(Tip: Use Combined thrust)</div>
+                </div>
+                <span class="challenge-status pending" id="stat-ch-4">Pending</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const baseWeight = 25;
+        let altitude = 0;       
+        let velocity = 0;       
+        let positionPx = 25;    
+
+        let challengesDone = { 1: false, 2: false, 3: false, 4: false };
+        let isCountingDown = false;
+        let isGameWon = false;
+
+        function showErrorBanner(msg) {
+            let banner = document.getElementById('error-banner');
+            banner.innerText = msg;
+            banner.style.display = 'block';
+            setTimeout(() => {
+                banner.style.display = 'none';
+            }, 3000);
+        }
+
+        function syncControl(type, source) {
+            if (isGameWon) return;
+            let slider = document.getElementById('slider-' + type);
+            let numInput = document.getElementById('num-' + type);
+
+            if (type === 'cargo') {
+                let val = parseFloat(numInput.value);
+                if (source === 'num' && (isNaN(val) || val <= 0)) {
+                    showErrorBanner("⚠️ Weight / Cargo cannot be 0!");
+                    numInput.value = "1.00";
+                    slider.value = 1;
+                    updatePhysicsVisuals();
+                    return;
+                }
+            }
+
+            if (source === 'slider') {
+                let val = parseFloat(numInput.value);
+                if (!isNaN(val)) {
+                    slider.value = Math.max(slider.min, Math.min(slider.max, val));
+                }
+            } else {
+                numInput.value = parseFloat(slider.value).toFixed(2);
+            }
+            updatePhysicsVisuals();
+        }
+
+        function getShipValues() {
+            return {
+                ionPower: parseFloat(document.getElementById('num-ion').value) || 0,
+                chemPercent: parseFloat(document.getElementById('num-chem').value) || 0,
+                cargoUnits: parseFloat(document.getElementById('num-cargo').value) || 1
+            };
+        }
+
+        function calculateShipStats() {
+            let vals = getShipValues();
+
+            let ionWeight = (vals.ionPower / 20) * 10;
+            let chemThrust = (vals.chemPercent / 100) * 100;
+            let chemWeight = (vals.chemPercent / 100) * 40; 
+            let cargoWeight = vals.cargoUnits * 15;
+
+            let totalThrust = vals.ionPower + chemThrust;
+            let totalWeight = baseWeight + ionWeight + chemWeight + cargoWeight;
+            let twr = totalWeight > 0 ? (totalThrust / totalWeight) : 0;
+
+            return { totalThrust, totalWeight, twr, vals };
+        }
+
+        function updatePhysicsVisuals() {
+            let stats = calculateShipStats();
+
+            document.getElementById('stat-weight').innerText = stats.totalWeight.toFixed(2) + ' kg';
+            document.getElementById('stat-thrust').innerText = stats.totalThrust.toFixed(2) + ' kN';
+            
+            let twrSpan = document.getElementById('stat-twr');
+            twrSpan.innerText = stats.twr.toFixed(4);
+            twrSpan.style.color = stats.twr > 1 ? '#10b981' : '#ef4444';
+
+            let fireHeight = stats.totalThrust > 0 ? Math.min(55, stats.totalThrust / 2) : 0;
+            document.getElementById('fire-effect').style.height = fireHeight + 'px';
+        }
+
+        function markChallenge(id) {
+            if (challengesDone[id] || isCountingDown || isGameWon) return; 
+            challengesDone[id] = true;
+
+            let item = document.getElementById('ch-' + id);
+            let badge = document.getElementById('stat-ch-' + id);
+            item.classList.add('completed');
+            badge.className = "challenge-status done";
+            badge.innerText = "Completed! ✓";
+
+            if (id === 4) {
+                isGameWon = true;
+                setTimeout(() => {
+                    document.getElementById('winner-overlay').style.display = 'flex';
+                }, 500);
+                return;
+            }
+
+            isCountingDown = true;
+            setTimeout(() => {
+                let overlay = document.getElementById('countdown-overlay');
+                let numEl = document.getElementById('countdown-num');
+                overlay.style.display = 'flex';
+
+                let count = 3;
+                numEl.innerText = count;
+
+                let timer = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        numEl.innerText = count;
+                    } else if (count === 0) {
+                        numEl.innerText = "GO!";
+                    } else {
+                        clearInterval(timer);
+                        overlay.style.display = 'none';
+                        resetLaunchpad(id);
+                        isCountingDown = false;
+                    }
+                }, 1000);
+            }, 1800);
+        }
+
+        function resetLaunchpad(completedId) {
+            altitude = 0;
+            velocity = 0;
+            positionPx = 25;
+            document.getElementById('rocket').style.bottom = positionPx + 'px';
+
+            document.getElementById('slider-ion').value = 0;
+            document.getElementById('num-ion').value = "0.00";
+            document.getElementById('slider-chem').value = 0;
+            document.getElementById('num-chem').value = "0.00";
+
+            if (completedId === 2) {
+                document.getElementById('slider-cargo').value = 3;
+                document.getElementById('num-cargo').value = "3.00";
+            } else {
+                document.getElementById('slider-cargo').value = 1;
+                document.getElementById('num-cargo').value = "1.00";
+            }
+
+            updatePhysicsVisuals();
+        }
+
+        function restartFullGame() {
+            document.getElementById('winner-overlay').style.display = 'none';
+            isGameWon = false;
+            isCountingDown = false;
+            
+            altitude = 0;
+            velocity = 0;
+            positionPx = 25;
+            document.getElementById('rocket').style.bottom = positionPx + 'px';
+
+            challengesDone = { 1: false, 2: false, 3: false, 4: false };
+
+            for (let i = 1; i <= 4; i++) {
+                let item = document.getElementById('ch-' + i);
+                let badge = document.getElementById('stat-ch-' + i);
+                item.classList.remove('completed');
+                badge.className = "challenge-status pending";
+                badge.innerText = "Pending";
+            }
+
+            document.getElementById('slider-ion').value = 0;
+            document.getElementById('num-ion').value = "0.00";
+            document.getElementById('slider-chem').value = 0;
+            document.getElementById('num-chem').value = "0.00";
+            document.getElementById('slider-cargo').value = 1;
+            document.getElementById('num-cargo').value = "1.00";
+
+            updatePhysicsVisuals();
+        }
+
+        setInterval(() => {
+            if (isCountingDown || isGameWon) return; 
+
+            let stats = calculateShipStats();
+
+            document.getElementById('stat-weight').innerText = stats.totalWeight.toFixed(2) + ' kg';
+            document.getElementById('stat-thrust').innerText = stats.totalThrust.toFixed(2) + ' kN';
+            let twrSpan = document.getElementById('stat-twr');
+            twrSpan.innerText = stats.twr.toFixed(4);
+            twrSpan.style.color = stats.twr > 1 ? '#10b981' : '#ef4444';
+
+            let acceleration = 0;
+            if (Math.abs(stats.twr - 1.0) < 0.002) {
+                acceleration = 0;
+                velocity *= 0.7; 
+            } else {
+                acceleration = (stats.twr - 1.0) * 0.8;
+                velocity += acceleration;
+                velocity *= 0.85; 
+            }
+
+            if (Math.abs(velocity) < 0.02 && Math.abs(stats.twr - 1.0) < 0.005) {
+                velocity = 0;
+            }
+
+            altitude += velocity;
+            positionPx = 25 + (altitude * 1.2);
+
+            if (positionPx <= 25) {
+                positionPx = 25;
+                if (velocity < 0) velocity = 0;
+                if (altitude < 0) altitude = 0;
+            }
+
+            if (positionPx > 325) {
+                positionPx = 325;
+                if (velocity > 0) velocity = 0;
+            }
+
+            document.getElementById('rocket').style.bottom = positionPx + 'px';
+            document.getElementById('tele-alt').innerText = altitude.toFixed(1);
+            document.getElementById('tele-spd').innerText = velocity.toFixed(2);
+
+            let vals = stats.vals;
+            let isHover = (altitude > 5 && Math.abs(velocity) <= 0.02 && Math.abs(stats.twr - 1.0) <= 0.005);
+            let isEscape = (altitude >= 200 && stats.totalThrust >= 180);
+
+            if (!challengesDone[1] && altitude >= 120 && ((vals.ionPower > 0 && vals.chemPercent === 0) || (vals.chemPercent > 0 && vals.ionPower === 0))) {
+                markChallenge(1);
+            } else if (!challengesDone[2] && isHover && vals.ionPower > 0 && vals.chemPercent === 0) {
+                markChallenge(2);
+            } else if (!challengesDone[3] && altitude >= 200 && vals.cargoUnits >= 3) {
+                markChallenge(3);
+            } else if (!challengesDone[4] && isEscape) {
+                markChallenge(4);
+            }
+
+            let badge = document.getElementById('status-badge');
+            if (positionPx <= 25 && stats.twr <= 1.0) {
+                badge.innerText = "Grounded (Insufficient Thrust)";
+                badge.style.color = "#ef4444";
+            } else if (isHover) {
+                badge.innerText = "✨ TRUE STABLE HOVER ✨";
+                badge.style.color = "#38bdf8";
+            } else if (isEscape) {
+                badge.innerText = "🚀 ESCAPE VELOCITY ACHIEVED";
+                badge.style.color = "#a855f7";
+            } else if (altitude >= 120) {
+                badge.innerText = "🌤️ Atmosphere Cleared";
+                badge.style.color = "#10b981";
+            } else if (velocity > 0.02) {
+                badge.innerText = "Rising 📈";
+                badge.style.color = "#22c55e";
+            } else if (velocity < -0.02) {
+                badge.innerText = "Descending / Falling 🔻";
+                badge.style.color = "#f97316";
+            } else {
+                badge.innerText = "Stationary / Balanced";
+                badge.style.color = "#e2e8f0";
+            }
+        }, 33);
+
+        updatePhysicsVisuals();
+    </script>
+</body>
+</html>
